@@ -1,0 +1,191 @@
+
+<html ng-app="plunker">
+
+  <head>
+    <meta charset="utf-8" />
+    <title>AngularJS Plunker</title>
+    <script>document.write('<base href="' + document.location + '" />');</script>
+    <link rel="stylesheet" href="style.css" />
+    <script data-require="angular.js@1.1.x" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.js" data-semver="1.1.5"></script>
+    <script src="http://www.parsecdn.com/js/parse-1.2.15.min.js"></script>
+    <script src="https://rawgithub.com/felipesabino/angular-parse/0.1.0/angularparse.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+    
+// https://parse.com/apps/quickstart#js/existing
+Parse.initialize('D3FBxjvv9M64uJgVKNzJIWSzo2xfEJciyDepgbrV',  'lKyd5sXwxXjAyr1Ud5D5m3frJx7zvFQEyIEdAGhf');
+
+var app = angular.module('plunker', ['angularParse']);
+
+app.controller('MainCtrl', function($scope, $timeout, parsePersistence, parseQuery) {
+
+  $scope.data = { 
+    items: [],
+    total: 0
+  }
+
+  $scope.users = {
+    items: [],
+    total: 0
+  }
+  
+  // adds a new object to server
+  $scope.add = function() {
+    
+    var testObject = parsePersistence.new('TestObject');
+    
+    parsePersistence.save(testObject, {foo: "bar promise"})
+    .then(function(object) { 
+      $scope.data.items.push(object);
+      $scope.data.total++;
+    }, function(error) {
+      alert(JSON.stringify(error));
+    });
+  }
+  
+  $scope.findUser = function ()
+  {
+
+    var query = parseQuery.new('User').limit(10);
+    
+    parseQuery.find(query)
+    .then(function(results) {
+      $scope.users.items = results;
+      
+      // nested promise :)
+      return parseQuery.count(query);
+    })
+   .then(function(total) {
+      $scope.users.total = total;
+    }, function(error) {
+      alert(JSON.stringify(error));
+    });
+
+  }
+  // retrieve a list of 10 items from server and the total number of items
+  $scope.find = function() {
+
+    var query = parseQuery.new('TestObject').limit(10);
+    
+    parseQuery.find(query)
+    .then(function(results) {
+      $scope.data.items = results;
+      
+      // nested promise :)
+      return parseQuery.count(query);
+    })
+   .then(function(total) {
+      $scope.data.total = total;
+    }, function(error) {
+      alert(JSON.stringify(error));
+    });
+    
+  };
+  
+  // removes an object from server
+  $scope.destroy = function(obj) {
+   
+    parsePersistence.destroy(obj)
+    .then(function(result) {
+      $scope.data.items.splice($scope.data.items.indexOf(obj),1);
+      $scope.data.total--;
+    }, function(error) {
+      alert(JSON.stringify(error));
+    });
+    
+  }
+
+ $scope.register = function () {
+
+        // TODO: add age verification step
+
+        $scope.loading = $ionicLoading.show({
+            content: 'Sending',
+            animation: 'fade-in',
+            showBackdrop: true,
+            maxWidth: 200,
+            showDelay: 0
+        });
+
+        var user = new Parse.User();
+        user.set("username", $scope.user.email);
+        user.set("password", $scope.user.password);
+        user.set("email", $scope.user.email);
+
+        user.signUp(null, {
+            success: function(user) {
+                $scope.loading.hide();
+                $rootScope.user = user;
+                $state.go('main.home', {clear: true});
+            },
+            error: function(user, error) {
+                $scope.loading.hide();
+                if (error.code === 125) {
+                    $scope.error.message = 'Please specify a valid email ' +
+                        'address';
+                } else if (error.code === 202) {
+                    $scope.error.message = 'The email address is already ' +
+                        'registered';
+                } else {
+                    $scope.error.message = error.message;
+                }
+                $scope.$apply();
+            }
+        });
+    };
+  
+});
+
+    </script>
+
+    
+  </head>
+
+  <body ng-controller="MainCtrl" animation="slide-left-right-ios7">
+
+      <ion-nav-bar type="bar-positive"
+             animation="nav-title-slide-ios7"
+             back-button-type="button-icon button-clear"
+             back-button-icon="ion-ios7-arrow-back"></ion-nav-bar>
+ <ion-nav-view>
+   <div class="list">
+            <label class="item item-input">
+                <input type="text" ng-model="user.email" placeholder="Email">
+            </label>
+            <label class="item item-input">
+                <input type="password" ng-model="user.password" placeholder="Password">
+            </label>
+          
+        </div>
+        <div class="assertive" ng-show="error.message">{{error.message}}</div>
+        <button class="button button-block button-positive" ng-click="register()">
+            CREATE ACCOUNT
+        </button>
+        <br>
+    <button ng-click="add()">Add item</button>
+    <button ng-click="find()">Find all</button>
+	<button ng-click="signUp()">Create user</button>
+
+  <label class="item item-input">
+  <input type="text" ng-model="user.email" placeholder="Find User">
+   </label>
+  <button ng-click="findUser()">Find all</button>
+    <p ng-show="data.items.length > 0">Showing {{data.items.length}} of {{data.total}} </p>
+    
+    <ul>
+      <li ng-repeat="item in data.items">(#{{item.id}}) {{item.createdAt}} - <a href="#" ng-click="destroy(item)">destroy</a></li>
+    </ul>
+
+    <br>
+    <p>users</p>
+       <p ng-show="users.items.length > 0">Showing {{users.items.length}} of {{users.total}} </p>
+    
+    <ul>
+      <li ng-repeat="item in users.items"> {{item.getUsername();}} <a href="#" ng-click="destroy(item)">destroy</a></li>
+    </ul>
+    </ion-nav-view>
+
+  </body>
+
+</html>
